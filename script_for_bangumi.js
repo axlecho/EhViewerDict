@@ -9,6 +9,8 @@ var targetUrl= 'http://bangumi.tv/anime/browser';
 var host = 'http://bangumi.tv';
 
 var dataFile = 'data.tmp';
+var errorFile = 'error.log';
+
 api.getHtml(targetUrl).then(
 	function(result) { return gettotalPage(result);},
 	function(error) { console.log(error);}
@@ -184,7 +186,9 @@ function praseCharacter(character,parent) {
 		function(html) {
 			parseHtml(deferred,html,homename,parent);
 		},function(error) {
-			console.log(error);
+			// console.log(error);
+			fs.appendFileSync(errorFile,error + '\n');
+			deferred.resolve();
 		}
 	);
 	return deferred.promise;	

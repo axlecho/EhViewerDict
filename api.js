@@ -11,6 +11,8 @@ function getHtml(url) {
 		console.log('[getHtml] url:' + url);
 	}
 	
+	
+
 	var req = http.get(url,function(res) {
 		var statusCode = res.statusCode;
 		var headers = JSON.parse(JSON.stringify(res.headers));
@@ -49,7 +51,12 @@ function getHtml(url) {
 
 		});
 	});
-
+	
+	req.socket.setTimeout(60000,function(){
+		req.abort();
+		deferred.reject('[getHtml] request ' + url + ' time out');
+	});
+	
 	req.on('error', function (e) {
 		deferred.reject('[getHtml] problem with request: ' + e.message);
 	});
