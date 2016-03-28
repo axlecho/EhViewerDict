@@ -219,6 +219,10 @@ function parseHtml(deferred,html,homename,parent) {
 
 
 function praseAll(page,total) {
+	if(!slient) {
+		console.log("[praseAll] prase page:" + page);
+	}
+	
 	var deferred = Q.defer();
 	if(page > total) { // done
 		deferred.resolve();
@@ -237,7 +241,7 @@ function praseAll(page,total) {
 	
 	prasePage(pageUrl).then (
 		function() {
-			//praseAll(++page,total);
+			praseAll(++page,total);
 		},function() {
 			console.log(error);
 		}
