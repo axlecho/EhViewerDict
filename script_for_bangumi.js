@@ -16,7 +16,11 @@ api.getHtml(targetUrl).then(
 	function(totalPage) {return praseAll(1,totalPage);},
 	function(error) {console.log(error);}
 ).then(
-	function() { console.log("done"); },
+	function() { 
+		if(!slient) {
+			console.log("done"); 
+		}
+	},
 	function(error) { console.log(error);}
 );
 	
@@ -44,13 +48,6 @@ function gettotalPage(html) {
 		console.log('[gettotalPage] totalPage:' + totalPage);
 	}
 	
-	var rule = new schedule.RecurrenceRule();
-　　rule.minute = 40;
-	var j = schedule.scheduleJob(rule, function(){
-　　　　console.log("执行任务");
-
-　　});
-
 	deferred.resolve(totalPage);
 	return deferred.promise;	
 }
@@ -148,8 +145,13 @@ function praseSubjectCharacters(deferred,subject) {
 				console.log(result);
 				console.log('=======================================================');	
 			}
-
-			praseSubjectCharacterInSubject(deferred,result,0,total);
+			
+			// 该条目没有角色信息
+			if(result === null) {
+				deferred.resolve();
+				return;
+			}
+			praseSubjectCharacterInSubject(deferred,result,0,result.length,parent);
 		},function(error) {
 			console.log(error);
 		}
@@ -218,7 +220,7 @@ function parseHtml(deferred,html,homename,parent) {
 
 function praseAll(page,total) {
 	var deferred = Q.defer();
-	if(page > totalPage) { // done
+	if(page > total) { // done
 		deferred.resolve();
 		return;
 	}
@@ -235,7 +237,7 @@ function praseAll(page,total) {
 	
 	prasePage(pageUrl).then (
 		function() {
-			//praseAll(++page,totalPage);
+			//praseAll(++page,total);
 		},function() {
 			console.log(error);
 		}
@@ -251,19 +253,24 @@ function praseSubjectInPage(deferred,result,pos,total) {
 	
 	praseSubject(result[pos]).then(
 		function() { 
-			//praseSubjectInPage(deferred,result,++ pos,total);
+			praseSubjectInPage(deferred,result,++ pos,total);
 		},
 		function(error) {console.log(error);}
 	);
 }
 
-function praseSubjectCharacterInSubject(deferred,result,pos,total) {
+function praseSubjectCharacterInSubject(deferred,result,pos,total,parent) {
+	if(debug) {
+		console.log('[praseSubjectCharacterInSubject] pos:' + pos + ' total:' + total);
+	}
+	
 	if(pos >= total) {	// parse Subject done
 		deferred.resolve();
 		return;
 	}
 	
-	praseCharacter(result[pos]).then(
+	
+	praseCharacter(result[pos],parent).then(
 		function() {
 			praseSubjectCharacterInSubject(deferred,result,++ pos,total);
 		},
