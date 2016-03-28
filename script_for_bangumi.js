@@ -2,7 +2,7 @@
 var Q = require('q');
 var fs = require('fs');
 
-var debug = false;
+var debug = true;
 var slient = false;
 
 var targetUrl= 'http://bangumi.tv/anime/browser';
@@ -10,17 +10,14 @@ var host = 'http://bangumi.tv';
 
 var dataFile = 'data.tmp';
 api.getHtml(targetUrl).then(
-	function(result) {
-		return gettotalPage(result);
-	},function(error) {
-		console.log(error);
-	}
+	function(result) { return gettotalPage(result);},
+	function(error) { console.log(error);}
 ).then(
-	function(totalPage) {
-		return praseAll(totalPage);
-	},function(error) {
-		console.log(error);
-	}
+	function(totalPage) {return praseAll(1,totalPage);},
+	function(error) {console.log(error);}
+).then(
+	function() { console.log("done"); },
+	function(error) { console.log(error);}
 );
 	
 
@@ -58,24 +55,8 @@ function gettotalPage(html) {
 	return deferred.promise;	
 }
 
-
-function praseAll(totalPage) {
-	for(var i = 0;i < 2;i ++) {
-		prasePage(i);
-	}
-}
-
-
-function prasePage(page) {
-	if(debug) {
-		console.log('[prasePage] page:' + page);
-	}
-	
-	var pageUrl = targetUrl + '?page=' + page;
-	
-	if(debug) {
-		console.log('[prasePage] pageUrl:' + pageUrl);
-	}
+function prasePage(pageUrl) {
+	var deferred = Q.defer();
 	api.getHtml(pageUrl).then(
 		function(html) {
 			// var subjectRegEx = /\/subject\/\d+/g;
@@ -87,18 +68,29 @@ function prasePage(page) {
 				console.log('===================================');
 			}
 			
-			result = unique(result);
-			for(i in result) {
-				praseSubject(result[i]);
-				praseSubjectCharacters(result[i]);
-			}
+			result = unique(result);			
+			praseSubjectInPage(deferred,result,0,result.length);
 		},function(error) {
 			console.log(error);
 		}
 	);
+	return deferred.promise;	
 }
 
 function praseSubject(subject) {
+	var deferred = Q.defer();
+	praseSubjectContent(subject).then(
+		function() {
+			praseSubjectCharacters(deferred,subject)
+		},
+		function(error) { console.log(error) }
+	);
+	return deferred.promise;
+}
+
+function praseSubjectContent(subject) {
+	var deferred = Q.defer();
+	
 	if(debug) {
 		console.log('[praseSubject] subject:' + subject);
 	}
@@ -120,14 +112,15 @@ function praseSubject(subject) {
 	
 	api.getHtml(subjectUrl).then(
 		function(html) {
-			parseHtml(html,homename,'');
+			parseHtml(deferred,html,homename,'');
 		},function(error) {
 			console.log(error);
 		}
 	);
+	return deferred.promise;	
 }
 
-function praseSubjectCharacters(subject) {
+function praseSubjectCharacters(deferred,subject) {
 	if(debug) {
 		console.log('[praseSubjectCharacters] subject:' + subject);
 	}
@@ -155,9 +148,8 @@ function praseSubjectCharacters(subject) {
 				console.log(result);
 				console.log('=======================================================');	
 			}
-			for(i in result){
-				praseCharacter(result[i],parent);
-			}
+
+			praseSubjectCharacterInSubject(deferred,result,0,total);
 		},function(error) {
 			console.log(error);
 		}
@@ -166,6 +158,7 @@ function praseSubjectCharacters(subject) {
 }
 
 function praseCharacter(character,parent) {
+	var deferred = Q.defer();
 	if(debug) {
 		console.log('[praseCharacter] character:' + character);
 	}
@@ -187,15 +180,15 @@ function praseCharacter(character,parent) {
 	}	
 	api.getHtml(characterUrl).then(
 		function(html) {
-			parseHtml(html,homename,parent);
+			parseHtml(deferred,html,homename,parent);
 		},function(error) {
 			console.log(error);
 		}
 	);
+	return deferred.promise;	
 }
 
-
-function parseHtml(html,homename,parent) {
+function parseHtml(deferred,html,homename,parent) {
 	var otherName = /((中文名|简体中文名|别名): <\/span>)(.*)(<\/li>)/g;
 	var result = html.match(otherName);
 	if(debug) {
@@ -218,6 +211,64 @@ function parseHtml(html,homename,parent) {
 		console.log('[parseHtml] content:' + content);
 	}
 	fs.appendFileSync(dataFile, content + "\n");
+	deferred.resolve();
+}
+
+
+
+function praseAll(page,total) {
+	var deferred = Q.defer();
+	if(page > totalPage) { // done
+		deferred.resolve();
+		return;
+	}
+	
+	if(debug) {
+		console.log('[praseAll] page:' + page);
+	}
+	
+	var pageUrl = targetUrl + '?page=' + page;
+	
+	if(debug) {
+		console.log('[praseAll] pageUrl:' + pageUrl);
+	}
+	
+	prasePage(pageUrl).then (
+		function() {
+			//praseAll(++page,totalPage);
+		},function() {
+			console.log(error);
+		}
+	);
+	return deferred.promise;	
+}
+
+function praseSubjectInPage(deferred,result,pos,total) {
+	if(pos >= total) {	// prase page done
+		deferred.resolve();
+		return;
+	}
+	
+	praseSubject(result[pos]).then(
+		function() { 
+			//praseSubjectInPage(deferred,result,++ pos,total);
+		},
+		function(error) {console.log(error);}
+	);
+}
+
+function praseSubjectCharacterInSubject(deferred,result,pos,total) {
+	if(pos >= total) {	// parse Subject done
+		deferred.resolve();
+		return;
+	}
+	
+	praseCharacter(result[pos]).then(
+		function() {
+			praseSubjectCharacterInSubject(deferred,result,++ pos,total);
+		},
+		function(error) {console.log(error);}
+	);
 }
 
 function unique(arr) {
