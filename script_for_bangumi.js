@@ -2,7 +2,7 @@
 var Q = require('q');
 var fs = require('fs');
 
-var debug = true;
+var debug = false;
 var slient = false;
 
 var targetUrl= 'http://bangumi.tv/anime/browser';
@@ -272,7 +272,7 @@ function praseSubjectCharacterInSubject(deferred,result,pos,total,parent) {
 	
 	praseCharacter(result[pos],parent).then(
 		function() {
-			praseSubjectCharacterInSubject(deferred,result,++ pos,total);
+			praseSubjectCharacterInSubject(deferred,result,++ pos,total,parent);
 		},
 		function(error) {console.log(error);}
 	);
