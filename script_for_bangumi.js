@@ -71,6 +71,8 @@ function prasePage(pageUrl) {
 			praseSubjectInPage(deferred,result,0,result.length);
 		},function(error) {
 			console.log(error);
+			fs.appendFileSync(errorFile,error + '\n');
+			deferred.resolve();
 		}
 	);
 	return deferred.promise;	
@@ -82,7 +84,11 @@ function praseSubject(subject) {
 		function() {
 			praseSubjectCharacters(deferred,subject)
 		},
-		function(error) { console.log(error) }
+		function(error) { 
+			console.log(error);
+			fs.appendFileSync(errorFile,error + '\n');
+			deferred.resolve();
+		}
 	);
 	return deferred.promise;
 }
@@ -114,6 +120,9 @@ function praseSubjectContent(subject) {
 			parseHtml(deferred,html,homename,'');
 		},function(error) {
 			console.log(error);
+			fs.appendFileSync(errorFile,error + '\n');
+			deferred.resolve();
+
 		}
 	);
 	return deferred.promise;	
@@ -155,6 +164,8 @@ function praseSubjectCharacters(deferred,subject) {
 			}
 			praseSubjectCharacterInSubject(deferred,result,0,result.length,parent);
 		},function(error) {
+			fs.appendFileSync(errorFile,error + '\n');
+			deferred.resolve();
 			console.log(error);
 		}
 	);
@@ -186,7 +197,7 @@ function praseCharacter(character,parent) {
 		function(html) {
 			parseHtml(deferred,html,homename,parent);
 		},function(error) {
-			// console.log(error);
+			console.log(error);
 			fs.appendFileSync(errorFile,error + '\n');
 			deferred.resolve();
 		}
@@ -246,8 +257,10 @@ function praseAll(page,total) {
 	prasePage(pageUrl).then (
 		function() {
 			praseAll(++page,total);
-		},function() {
+		},function(error) {
 			console.log(error);
+			fs.appendFileSync(errorFile,error + '\n');
+			deferred.resolve();
 		}
 	);
 	return deferred.promise;	
@@ -263,7 +276,11 @@ function praseSubjectInPage(deferred,result,pos,total) {
 		function() { 
 			praseSubjectInPage(deferred,result,++ pos,total);
 		},
-		function(error) {console.log(error);}
+		function(error) {
+			console.log(error);
+			fs.appendFileSync(errorFile,error + '\n');
+			deferred.resolve();
+		}
 	);
 }
 
@@ -282,7 +299,11 @@ function praseSubjectCharacterInSubject(deferred,result,pos,total,parent) {
 		function() {
 			praseSubjectCharacterInSubject(deferred,result,++ pos,total,parent);
 		},
-		function(error) {console.log(error);}
+		function(error) {
+			console.log(error);
+			fs.appendFileSync(errorFile,error + '\n');
+			deferred.resolve();
+		}
 	);
 }
 

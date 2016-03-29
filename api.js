@@ -52,14 +52,15 @@ function getHtml(url) {
 		});
 	});
 	
-	req.socket.setTimeout(60000,function(){
-		req.abort();
-		deferred.reject('[getHtml] request ' + url + ' time out');
-	});
+	//req.socket.setTimeout(60000,function(){
+	//	req.abort();
+	//	deferred.reject('[getHtml] request ' + url + ' time out');
+	//});
 	
 	req.on('error', function (e) {
 		deferred.reject('[getHtml] problem with request: ' + e.message);
 	});
+	
 	req.end();
 	
 	return deferred.promise;	
