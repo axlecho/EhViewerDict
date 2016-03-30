@@ -1,9 +1,9 @@
 var http = require('http');
 var Q = require('q');
 
-var debug = false;
-var silent = true;
-
+var debug = true;
+var silent = false;
+var timeout = 60000;
 function getHtml(url) {
     var deferred = Q.defer();
 	
@@ -26,10 +26,17 @@ function getHtml(url) {
 			  chunks.push(chunk);
 		});
 		
+		if(statusCode != 200) {
+			deferred.reject('[getHtml] request failed with code: ' + statusCode);
+		}
+		
 		res.on('end',function() {
 			var buffer = Buffer.concat(chunks);
 			switch (headers['content-encoding']) {
 			case 'gzip':
+				if(debug) {
+					console.log('[getHtml] unzip content');
+				}
 				zlib.gunzip(buffer, function (err, decoded) {
 					var result = decoded.toString();
 					if(debug) {
@@ -57,6 +64,14 @@ function getHtml(url) {
 	//	deferred.reject('[getHtml] request ' + url + ' time out');
 	//});
 	
+	req.on('socket', function (socket) {
+		socket.setTimeout(timeout);  
+		socket.on('timeout', function() {
+			req.abort();
+			deferred.reject('[getHtml] request timeout');
+		});
+	});
+
 	req.on('error', function (e) {
 		deferred.reject('[getHtml] problem with request: ' + e.message);
 	});

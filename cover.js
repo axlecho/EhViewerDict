@@ -38,7 +38,11 @@ var s = stream.readLine(fs.createReadStream(program.input), {
 		if(field[i] === '') {
 			continue;
 		}
-		item[i.toString()] = field[i];
+		if(i == 0) {
+			item['parent'] = field[i];
+        } else {
+			item[i.toString()] = field[i];
+		}
 	}
 	console.log(item);
 	dict.data.push(item);

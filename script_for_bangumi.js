@@ -2,7 +2,7 @@
 var Q = require('q');
 var fs = require('fs');
 
-var debug = false;
+var debug = true;
 var slient = false;
 
 var targetUrl= 'http://bangumi.tv/anime/browser';
@@ -12,18 +12,32 @@ var dataFile = 'data.tmp';
 var errorFile = 'error.log';
 
 api.getHtml(targetUrl).then(
-	function(result) { return gettotalPage(result);},
-	function(error) { console.log(error);}
+	function(result) { 
+		return gettotalPage(result);
+	},
+	function(error) { 
+			console.log(error);
+			fs.appendFileSync(errorFile,getNowFormatDate() + " " + error + '\n');
+			deferred.resolve();
+	}
 ).then(
-	function(totalPage) {return praseAll(1,totalPage);},
-	function(error) {console.log(error);}
+	function(totalPage) {
+		return praseAll(1,totalPage);
+	},
+	function(error) {
+		console.log(error);
+		fs.appendFileSync(errorFile,getNowFormatDate() + " " + error + '\n');
+		deferred.resolve();
+	}
 ).then(
 	function() { 
 		if(!slient) {
 			console.log("done"); 
 		}
 	},
-	function(error) { console.log(error);}
+	function(error) { 
+		console.log(error);
+	}
 );
 	
 
@@ -47,7 +61,7 @@ function gettotalPage(html) {
 	}
 	
 	if(!slient) {
-		console.log('[gettotalPage] totalPage:' + totalPage);
+		console.log(getNowFormatDate() + ' [gettotalPage] totalPage:' + totalPage);
 	}
 	
 	deferred.resolve(totalPage);
@@ -71,7 +85,7 @@ function prasePage(pageUrl) {
 			praseSubjectInPage(deferred,result,0,result.length);
 		},function(error) {
 			console.log(error);
-			fs.appendFileSync(errorFile,error + '\n');
+			fs.appendFileSync(errorFile,getNowFormatDate() + " " + error + '\n');
 			deferred.resolve();
 		}
 	);
@@ -86,7 +100,7 @@ function praseSubject(subject) {
 		},
 		function(error) { 
 			console.log(error);
-			fs.appendFileSync(errorFile,error + '\n');
+			fs.appendFileSync(errorFile,getNowFormatDate() + " " + error + '\n');
 			deferred.resolve();
 		}
 	);
@@ -120,9 +134,8 @@ function praseSubjectContent(subject) {
 			parseHtml(deferred,html,homename,'');
 		},function(error) {
 			console.log(error);
-			fs.appendFileSync(errorFile,error + '\n');
+			fs.appendFileSync(errorFile,getNowFormatDate() + " " + error + '\n');
 			deferred.resolve();
-
 		}
 	);
 	return deferred.promise;	
@@ -163,10 +176,10 @@ function praseSubjectCharacters(deferred,subject) {
 				return;
 			}
 			praseSubjectCharacterInSubject(deferred,result,0,result.length,parent);
-		},function(error) {
-			fs.appendFileSync(errorFile,error + '\n');
-			deferred.resolve();
+		},function(error) {	
 			console.log(error);
+			fs.appendFileSync(errorFile,getNowFormatDate() + " " + error + '\n');
+			deferred.resolve();
 		}
 	);
 	
@@ -198,7 +211,7 @@ function praseCharacter(character,parent) {
 			parseHtml(deferred,html,homename,parent);
 		},function(error) {
 			console.log(error);
-			fs.appendFileSync(errorFile,error + '\n');
+			fs.appendFileSync(errorFile,getNowFormatDate() + " " + error + '\n');
 			deferred.resolve();
 		}
 	);
@@ -224,18 +237,17 @@ function parseHtml(deferred,html,homename,parent) {
 		content = content + result[i].match(otherSplit)[3].replace(/'/g,'').replace(',','');
 		content = content + '@*';
 	}
+	
 	if(!slient) {
-		console.log('[parseHtml] content:' + content);
+		console.log(getNowFormatDate() + ' [parseHtml] content:' + content);
 	}
 	fs.appendFileSync(dataFile, content + "\n");
 	deferred.resolve();
 }
 
-
-
 function praseAll(page,total) {
 	if(!slient) {
-		console.log("[praseAll] prase page:" + page);
+		console.log(getNowFormatDate() + ' [praseAll] prase page:' + page);
 	}
 	
 	var deferred = Q.defer();
@@ -259,7 +271,7 @@ function praseAll(page,total) {
 			praseAll(++page,total);
 		},function(error) {
 			console.log(error);
-			fs.appendFileSync(errorFile,error + '\n');
+			fs.appendFileSync(errorFile,getNowFormatDate() + " " + error + '\n');
 			deferred.resolve();
 		}
 	);
@@ -278,7 +290,7 @@ function praseSubjectInPage(deferred,result,pos,total) {
 		},
 		function(error) {
 			console.log(error);
-			fs.appendFileSync(errorFile,error + '\n');
+			fs.appendFileSync(errorFile,getNowFormatDate() + " " + error + '\n');
 			deferred.resolve();
 		}
 	);
@@ -301,7 +313,7 @@ function praseSubjectCharacterInSubject(deferred,result,pos,total,parent) {
 		},
 		function(error) {
 			console.log(error);
-			fs.appendFileSync(errorFile,error + '\n');
+			fs.appendFileSync(errorFile,getNowFormatDate() + " " + error + '\n');
 			deferred.resolve();
 		}
 	);
@@ -317,4 +329,29 @@ function unique(arr) {
     }
     return result;
 //http://www.cnblogs.com/sosoft/
+}
+
+function getNowFormatDate() {
+    var date = new Date();
+    var seperator1 = "-";
+    var seperator2 = ":";
+    var month = date.getMonth() + 1;
+    var strDate = date.getDate();
+	var second = date.getSeconds();
+	
+    if (month >= 1 && month <= 9) {
+        month = "0" + month;
+    }
+    if (strDate >= 0 && strDate <= 9) {
+        strDate = "0" + strDate;
+    }
+	
+	if(0 <= second && second <= 9) {
+		second = '0' + second;
+	}
+	
+    var currentdate = date.getFullYear() + seperator1 + month + seperator1 + strDate
+            + " " + date.getHours() + seperator2 + date.getMinutes()
+            + seperator2 + second;
+    return currentdate;
 }
